@@ -33,7 +33,7 @@ Alternatively:
     var App = new Morphon.NameSpace('App');
     App.create('Dashboard');
     App.create('Dashboard.SideNav');
-    App.create('Graphs', 'Dashboard');
+    App.create('Graphs', 'Dashboard'); // 'Graphs' created in target 'Dashboard'
     App.create('Messages');
 
 The above would create a namespace structure like the following:
