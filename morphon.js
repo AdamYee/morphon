@@ -81,7 +81,7 @@
           throw new Error('namespace "'+ns+'" does not exist');
       },
 
-      // Optionally pass a target namespace to nest a given 'ns'.
+      // Optionally pass a target namespace to nest a given 'ns' inside.
       // Otherwise, create the specified 'ns'.
       create: function(ns, target) {
         var spaces = splitNS(ns);
@@ -93,7 +93,7 @@
           s.create(ns);
         }
         else {
-          // Single namespace passed
+          // Single namespace argument (no target defined)
           if (spaces === null) {
             // Try to retrieve the namespace. Create if it doesn't exist,
             // otherwise throw an already exists error.
@@ -105,13 +105,14 @@
             if (s) throw new Error('namespace "'+ns+'" already exists');
           }
           else {
-            // Try to retrieve the next namespace and create the branch
-            // within it. If it's not found, create the next namespace.
+            // Try to retrieve the first namespace and create the branch(es)
+            // within it.
             try {
               s = this.get( spaces.root );
               s.create( spaces.branch );
             }
             catch (error) {
+              // If it's not found, create the first namespace.
               // recursively create branch namespaces
               namespace[ spaces.root ] = new NameSpace( ns );
             }
