@@ -29,18 +29,6 @@
 
 }(this /*global*/, function(root, Morphon, _, Backbone) { /*factory*/
 
-  function splitNS(namespace) {
-    var result = null;
-    var spaces = namespace.match(/([^\.]+)\.(.+)/);
-    if (spaces !== null) {
-      result = {
-        root: spaces[1],
-        branch: spaces[2]
-      };
-    }
-    return result;
-  }
-
   var NameSpace = Morphon.NameSpace = function (ns) {
     if (ns === undefined) {
       throw {
@@ -52,7 +40,7 @@
     this.namespaces = {};
     this.events = _.extend({},Backbone.Events);
     
-    var spaces = splitNS(ns);
+    var spaces = NameSpace.split(ns);
     if (spaces === null) {
       this.name = ns;
     }
@@ -60,6 +48,18 @@
       this.name = spaces.root;
       this.create( spaces.branch );
     }
+  };
+
+  NameSpace.split = function(namespace) {
+    var result = null;
+    var spaces = namespace.match(/([^\.]+)\.(.+)/);
+    if (spaces !== null) {
+      result = {
+        root: spaces[1],
+        branch: spaces[2]
+      };
+    }
+    return result;
   };
 
   // API
@@ -107,7 +107,7 @@
           message: 'please provide a namespace'
         };
       }
-      var spaces = splitNS(ns);
+      var spaces = NameSpace.split(ns);
       ns = spaces === null ? ns : spaces.root;
       if (this.namespaces.hasOwnProperty( ns )) {
         if (spaces === null) return this.namespaces[ ns ];
@@ -124,7 +124,7 @@
     // Optionally pass a target namespace to nest a given 'ns'.
     // Otherwise, create the specified 'ns'.
     create: function(ns, target) {
-      var spaces = splitNS(ns);
+      var spaces = NameSpace.split(ns);
       var s;
 
       if (target !== undefined) {
