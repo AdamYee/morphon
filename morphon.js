@@ -11,7 +11,7 @@
       root.Morphon = factory(root, exports, _, bb);
     });
 
-  // Next for Node.js or CommonJS. jQuery may not be needed as a module.
+  // Next for Node.js or CommonJS.
   } else if (typeof exports !== 'undefined') {
     var _ = require('underscore');
     var bb = require('backbone');
@@ -42,88 +42,17 @@
   }
 
   var NameSpace = Morphon.NameSpace = function (ns) {
-    if (ns === undefined)
-      throw new Error('please provide a namespace');
+    if (ns === undefined) {
+      throw {
+        type: 'NamespaceError',
+        message: 'please provide a namespace'
+      };
+    }
 
-    // private variables
-    var self = this;
-    var namespace = {};
-    var events = _.extend({},Backbone.Events);
-
-    // API
-    //-----------
-    _.extend(this, {
-      register: function(event, cb, context) {
-        events.on(event, cb, context);
-      },
-
-      broadcast: function(event, options) {    
-        events.trigger(event, Array.prototype.slice.call(arguments, 1));
-      },
-
-      // debugging only
-      show: function () {
-        return namespace;
-      },
-
-      // Retrieve a NameSpace instance
-      // if argument 'ns' is multi-namespaced, recursively find the branch/leaf
-      get: function(ns) {
-        if (ns === undefined)
-          throw new Error('no namespace provided');
-        var spaces = splitNS(ns);
-        ns = spaces === null ? ns : spaces.root;
-        if (namespace.hasOwnProperty( ns )) {
-          if (spaces === null) return namespace[ ns ];
-          else return namespace[ spaces.root ].get( spaces.branch );
-        }
-        else
-          throw new Error('namespace "'+ns+'" does not exist');
-      },
-
-      // Optionally pass a target namespace to nest a given 'ns' inside.
-      // Otherwise, create the specified 'ns'.
-      create: function(ns, target) {
-        var spaces = splitNS(ns);
-        var s;
-
-        if (target !== undefined) {
-          if (typeof target !== 'string') throw new Error('target must be a string');
-          s = this.get(target);
-          s.create(ns);
-        }
-        else {
-          // Single namespace argument (no target defined)
-          if (spaces === null) {
-            // Try to retrieve the namespace. Create if it doesn't exist,
-            // otherwise throw an already exists error.
-            try {
-              s = this.get(ns);
-            } catch (error) {
-              namespace[ns] = new NameSpace(ns);
-            }
-            if (s) throw new Error('namespace "'+ns+'" already exists');
-          }
-          else {
-            // Try to retrieve the first namespace and create the branch(es)
-            // within it.
-            try {
-              s = this.get( spaces.root );
-              s.create( spaces.branch );
-            }
-            catch (error) {
-              // If it's not found, create the first namespace.
-              // recursively create branch namespaces
-              namespace[ spaces.root ] = new NameSpace( ns );
-            }
-          }
-        }
-      }
-    });
-
-    // main constructor implementation
+    this.namespace = {};
+    this.events = _.extend({},Backbone.Events);
+    
     var spaces = splitNS(ns);
-
     if (spaces === null) {
       this.name = ns;
     }
@@ -132,6 +61,93 @@
       this.create( spaces.branch );
     }
   };
+
+  // API
+  //-----------
+  _.extend(NameSpace.prototype, {
+    register: function(event, cb, context) {
+      this.events.on(event, cb, context);
+    },
+
+    unregister: function(event, cb, context) {
+      this.events.off(event, cb, context);
+    },
+
+    broadcast: function(event) {    
+      this.events.trigger(event, Array.prototype.slice.call(arguments, 1));
+    },
+
+    // Retrieve a NameSpace instance
+    // if argument 'ns' is multi-namespaced, recursively find the branch/leaf
+    get: function(ns) {
+      if (ns === undefined) {
+        throw {
+          type: 'NamespaceError',
+          message: 'please provide a namespace'
+        };
+      }
+      var spaces = splitNS(ns);
+      ns = spaces === null ? ns : spaces.root;
+      if (this.namespace.hasOwnProperty( ns )) {
+        if (spaces === null) return this.namespace[ ns ];
+        else return this.namespace[ spaces.root ].get( spaces.branch );
+      }
+      else {
+        throw {
+          type: 'NamespaceError',
+          message: 'Namespace "' + ns + '" does not exist'
+        };
+      }
+    },
+
+    // Optionally pass a target namespace to nest a given 'ns'.
+    // Otherwise, create the specified 'ns'.
+    create: function(ns, target) {
+      var spaces = splitNS(ns);
+      var s;
+
+      if (target !== undefined) {
+        if (typeof target !== 'string') {
+          throw {
+            type: 'NamespaceError',
+            message: 'target Namepsace must be a string'
+          };
+        }
+        s = this.get(target);
+        s.create(ns);
+      }
+      else {
+        // Single namespace passed
+        if (spaces === null) {
+          // Try to retrieve the namespace. Create if it doesn't exist,
+          // otherwise throw an already exists error.
+          try {
+            s = this.get(ns);
+          } catch (error) {
+            this.namespace[ns] = new NameSpace(ns);
+          }
+          if (s) {
+            throw {
+              type: 'NamespaceError',
+              message: 'Namespace "'+ns+'" already exists'
+            };
+          }
+        }
+        else {
+          // Try to retrieve the next namespace and create the branch
+          // within it. If it's not found, create the next namespace.
+          try {
+            s = this.get( spaces.root );
+            s.create( spaces.branch );
+          }
+          catch (error) {
+            // recursively create branch namespaces
+            this.namespace[ spaces.root ] = new NameSpace( ns );
+          }
+        }
+      }
+    }
+  });
 
   return Morphon;
 

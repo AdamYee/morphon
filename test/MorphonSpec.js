@@ -55,13 +55,16 @@ describe('Morphon', function(){
 					ns.create('branch.vine');
 					expect(ns.get('branch.vine').name).to.equal('vine');
 					expect(ns.get('branch.twig').name).to.equal('twig');
+					expect(function () {
+						ns.get('branch.missing')
+					}).to.throw('Namespace "missing" does not exist');
 				});
 				it('should not be able to re-create a namespace', function() {
 					ns = new NameSpace('root');
 					ns.create('branch');
 					expect(function () {
 						ns.create('branch');
-					}).to.throw('namespace "branch" already exists');
+					}).to.throw('Namespace "branch" already exists');
 				});
 			});
 			describe('create(namespace, target)', function() {
@@ -76,7 +79,7 @@ describe('Morphon', function(){
 					ns = new NameSpace('root');
 					expect(function() {
 						ns.create('twig', 'branch');
-					}).to.throw('namespace "branch" does not exist');
+					}).to.throw('Namespace "branch" does not exist');
 				});
 			});
 		});
