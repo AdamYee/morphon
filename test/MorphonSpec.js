@@ -33,7 +33,7 @@ describe('Morphon', function(){
 			});
 		});
 
-		describe('API', function() {
+		describe('API method:', function() {
 			describe('get()', function() {
 				it('can recursively find a branch namespace', function() {
 					ns = new NameSpace('root.branch');
@@ -80,6 +80,43 @@ describe('Morphon', function(){
 					expect(function() {
 						ns.create('twig', 'branch');
 					}).to.throw('Namespace "branch" does not exist');
+				});
+			});
+
+			describe('broadcast(event, propogate)', function() {
+				var counter;
+				var args;
+				function increment () {
+					counter += 1;
+					args.push(Array.prototype.slice.call(arguments));
+				}	
+				beforeEach(function() {
+					ns = new NameSpace('root.branch.twig');
+					ns.create('branch2');
+					ns.create('branch3');
+					counter = 0;
+					args = [];
+				})
+				it('triggers an event and passes along arguments to callback', function() {
+					ns.register('root-event', increment);
+					ns.broadcast('root-event', false, 'foo');
+					expect(counter).to.equal(1);
+					// first callback, first arg
+					expect(args[0][0]).to.equal('foo');
+				});
+				it('propogates an event down the chain and passes along arguments to each registered callback', function() {
+					ns.register('root-event', increment);
+					ns.get('branch').register('root-event', increment);
+					ns.get('branch2').register('root-event', increment);
+					ns.get('branch3').register('root-event', increment);
+					ns.broadcast('root-event', true, 'foo');
+					expect(counter).to.equal(4);
+					for (var i=0; i<counter; i+=1) {
+						expect(args[i][0]).to.equal('foo');
+					}
+					ns.get('branch.twig').register('root-event', increment);
+					ns.broadcast('root-event', true);
+					expect(counter).to.equal(9);
 				});
 			});
 		});

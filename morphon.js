@@ -49,7 +49,7 @@
       };
     }
 
-    this.namespace = {};
+    this.namespaces = {};
     this.events = _.extend({},Backbone.Events);
     
     var spaces = splitNS(ns);
@@ -73,8 +73,29 @@
       this.events.off(event, cb, context);
     },
 
-    broadcast: function(event) {    
-      this.events.trigger(event, Array.prototype.slice.call(arguments, 1));
+    /**
+     * Triggers an event and passes along arguments. Optionally
+     * propogate the event down the namespaces tree.
+     * @param event - string event name
+     * @param propogate - boolean that determines broadcasting the event 
+                          down the namespaces tree.
+     */
+    broadcast: function(event, propogate) {
+      if (typeof propogate !== 'boolean') {
+        throw {
+          type: 'TypeError',
+          message: 'propogate argument must be a boolean'
+        };
+      }
+      var args = Array.prototype.slice.call(arguments, 2);
+      this.events.trigger.apply(this.events, [event].concat(args));
+      if (propogate) {
+        for (ns in this.namespaces) {
+          if (this.namespaces.hasOwnProperty(ns)){
+            this.namespaces[ns].broadcast.apply(this.namespaces[ns], [event, true].concat(args));
+          }
+        }
+      }
     },
 
     // Retrieve a NameSpace instance
@@ -88,9 +109,9 @@
       }
       var spaces = splitNS(ns);
       ns = spaces === null ? ns : spaces.root;
-      if (this.namespace.hasOwnProperty( ns )) {
-        if (spaces === null) return this.namespace[ ns ];
-        else return this.namespace[ spaces.root ].get( spaces.branch );
+      if (this.namespaces.hasOwnProperty( ns )) {
+        if (spaces === null) return this.namespaces[ ns ];
+        else return this.namespaces[ spaces.root ].get( spaces.branch );
       }
       else {
         throw {
@@ -124,7 +145,7 @@
           try {
             s = this.get(ns);
           } catch (error) {
-            this.namespace[ns] = new NameSpace(ns);
+            this.namespaces[ns] = new NameSpace(ns);
           }
           if (s) {
             throw {
@@ -142,7 +163,7 @@
           }
           catch (error) {
             // recursively create branch namespaces
-            this.namespace[ spaces.root ] = new NameSpace( ns );
+            this.namespaces[ spaces.root ] = new NameSpace( ns );
           }
         }
       }
